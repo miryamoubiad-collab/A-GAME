@@ -1,0 +1,201 @@
+# This is a basic workflow to help you get started with Actions
+
+import pygame
+import sys
+
+pygame.init()
+
+# Scherm
+BREEDTE = 900
+HOOGTE = 600*_%LK .LM%
+
+scherm = pygame.display.set_mode((BREEDTE, HOOGTE))
+pygame.display.set_caption("Mijn Mario-achtig spel")
+
+klok = pygame.time.Clock()
+
+# Kleuren
+BLAUW = (100, 180, 255)
+GROEN = (50, 180, 70)
+BRUIN = (150, 90, 40)
+ROOD = (220, 40, 40)
+GEEL = (255, 220, 0)
+ZWART = (0, 0, 0)
+
+# Speler
+speler = pygame.Rect(100, 450, 40, 50)
+snelheid = 5
+springkracht = -14
+zwaartekracht = 0.7
+snelheid_y = 0
+op_de_grond = False
+
+# Platforms
+platforms = [
+    pygame.Rect(0, 550, 900, 50),
+    pygame.Rect(150, 450, 180, 25),
+    pygame.Rect(450, 380, 180, 25),
+    pygame.Rect(700, 300, 150, 25)
+]
+
+# Munten
+munten = [
+    pygame.Rect(200, 410, 20, 20),
+    pygame.Rect(500, 340, 20, 20),
+    pygame.Rect(750, 260, 20, 20)
+]
+
+# Vijand
+vijand = pygame.Rect(600, 500, 40, 50)
+vijand_snelheid = 3
+
+score = 0
+lettertype = pygame.font.Font(None, 36)
+
+
+def teken_speler():
+    # Hoofd
+    pygame.draw.rect(scherm, ROOD, (speler.x, speler.y, 40, 15))
+
+    # Lichaam
+    pygame.draw.rect(scherm, (0, 0, 200),
+                     (speler.x + 5, speler.y + 15, 30, 25))
+
+    # Benen
+    pygame.draw.rect(scherm, BRUIN,
+                     (speler.x + 5, speler.y + 40, 12, 10))
+    pygame.draw.rect(scherm, BRUIN,
+                     (speler.x + 23, speler.y + 40, 12, 10))
+
+
+def reset_spel():
+    global snelheid_y, score
+
+    speler.x = 100
+    speler.y = 450
+    snelheid_y = 0
+    score = 0
+
+
+# Hoofdgame-loop
+while True:
+
+    # Events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        # Springen
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and op_de_grond:
+                snelheid_y = springkracht
+
+    # Toetsen
+    toetsen = pygame.key.get_pressed()
+
+    if toetsen[pygame.K_LEFT]:
+        speler.x -= snelheid
+
+    if toetsen[pygame.K_RIGHT]:
+        speler.x += snelheid
+
+    # Zwaartekracht
+    snelheid_y += zwaartekracht
+    speler.y += snelheid_y
+
+    op_de_grond = False
+
+    # Botsing met platforms
+    for platform in platforms:
+
+        if speler.colliderect(platform):
+
+            # Alleen landen bovenop het platform
+            if snelheid_y >= 0 and speler.bottom <= platform.bottom:
+                speler.bottom = platform.top
+                snelheid_y = 0
+                op_de_grond = True
+
+    # Schermgrenzen
+    if speler.left < 0:
+        speler.left = 0
+
+    if speler.right > BREEDTE:
+        speler.right = BREEDTE
+
+    # Munten verzamelen
+    for munt in munten[:]:
+        if speler.colliderect(munt):
+            munten.remove(munt)
+            score += 1
+
+    # Vijand bewegen
+    vijand.x += vijand_snelheid
+
+    if vijand.left <= 400 or vijand.right >= 850:
+        vijand_snelheid *= -1
+
+    # Botsing met vijand
+    if speler.colliderect(vijand):
+        reset_spel()
+
+    # Gewonnen?
+    if len(munten) == 0:
+        scherm.fill(BLAUW)
+
+        tekst = lettertype.render(
+            "Je hebt gewonnen! 🎉",
+            True,
+            ZWART
+        )
+
+        scherm.blit(
+            tekst,
+            (BREEDTE // 2 - tekst.get_width() // 2, 250)
+        )
+
+        pygame.display.flip()
+        klok.tick(60)
+        continue
+
+    # Achtergrond
+    scherm.fill(BLAUW)
+
+    # Wolken
+    pygame.draw.circle(scherm, (255, 255, 255), (150, 100), 30)
+    pygame.draw.circle(scherm, (255, 255, 255), (180, 100), 40)
+    pygame.draw.circle(scherm, (255, 255, 255), (215, 100), 30)
+
+    # Platforms tekenen
+    for platform in platforms:
+        pygame.draw.rect(scherm, GROEN, platform)
+
+    # Munten tekenen
+    for munt in munten:
+        pygame.draw.circle(
+            scherm,
+            GEEL,
+            munt.center,
+            10
+        )
+
+    # Vijand tekenen
+    pygame.draw.rect(scherm, ROOD, vijand)
+
+    # Speler tekenen
+    teken_speler()
+
+    # Score
+    score_tekst = lettertype.render(
+        f"Munten: {score}",
+        True,
+        ZWART
+    )
+
+    scherm.blit(score_tekst, (20, 20))
+
+    # Scherm vernieuwen
+    pygame.display.flip()
+
+    klok.tick(60)
